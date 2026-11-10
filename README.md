@@ -11,6 +11,7 @@ ESPHome 2026.10 or newer is required (OTA encryption with the API key, digest au
 
 | Entity | Function |
 |---|---|
+| Window (select) | Closed / Micro tilt / Full tilt / Open fully: shows the position and moves the window when changed |
 | Close | `{"window":0}` |
 | Micro tilt | `{"window":7}` then `{"window":1}` |
 | Tilt fully | `{"window":8}` then `{"window":1}` |

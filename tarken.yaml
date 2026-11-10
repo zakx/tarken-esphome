@@ -77,6 +77,30 @@ number:
     restore_value: true
     optimistic: true
 
+# Window position: shows the current position and moves the window when changed.
+select:
+  - platform: template
+    name: "Window"
+    id: tarken_position
+    icon: mdi:window-open-variant
+    options:
+      - "Closed"
+      - "Micro tilt"
+      - "Full tilt"
+      - "Open fully"
+    update_interval: 2s
+    lambda: |-
+      std::string p = id(tarken_wm).position();
+      if (p.empty())
+        return {};
+      return p;
+    set_action:
+      - lambda: |-
+          if (x == "Closed") id(tarken_wm).send_window(0);
+          else if (x == "Micro tilt") id(tarken_wm).send_window({7, 1});
+          else if (x == "Full tilt") id(tarken_wm).send_window({8, 1});
+          else if (x == "Open fully") id(tarken_wm).send_window(2);
+
 # Diagnostic: send any JSON to the Tarken, e.g. {"pair":1}
 text:
   - platform: template

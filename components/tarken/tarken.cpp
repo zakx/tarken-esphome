@@ -163,6 +163,17 @@ void Tarken::send_window(const std::vector<int> &values) {
   this->session_has_commands_ = true;
   this->moving_ = true;
   int last = values.empty() ? -1 : values.back();
+  // Show the commanded position at once; the next status confirms it.
+  for (int v : values) {
+    if (v == 7)
+      this->last_open_ = 2;
+    else if (v == 8)
+      this->last_open_ = 1;
+  }
+  if (last == 0 || last == 1 || last == 2) {
+    this->last_command_ = last;
+    this->last_window_ = last == 0 ? 0 : 1;
+  }
   // 0 = closed; 1 (open in the selected mode) and 2 (open fully) both report window=1.
   this->expected_window_ = last == 0 ? 0 : (last == 1 || last == 2) ? 1 : -1;
   this->window_before_ = this->last_window_;
@@ -183,6 +194,21 @@ void Tarken::request_pair() {
   cmd.auth = true;
   this->queue_.push_back(cmd);
   this->start_session_();
+}
+
+std::string Tarken::position() const {
+  if (this->last_window_ == 0)
+    return "Closed";
+  if (this->last_window_ != 1)
+    return "";
+  // The status does not tell "open fully" from "full tilt"; use the last command.
+  if (this->last_command_ == 2)
+    return "Open fully";
+  if (this->last_open_ == 2)
+    return "Micro tilt";
+  if (this->last_open_ == 1)
+    return "Full tilt";
+  return "";
 }
 
 void Tarken::request_poll() {
@@ -674,6 +700,11 @@ void Tarken::handle_json_(const std::string &text) {
       this->last_window_ = root["window"].as<int>();
     if (!root["active"].isNull())
       this->last_active_ = root["active"].as<int>();
+    if (!root["open"].isNull())
+      this->last_open_ = root["open"].as<int>();
+    // A close from the Tarken's own buttons or automation: forget "open fully".
+    if (!root["window"].isNull() && root["window"].as<int>() == 0)
+      this->last_command_ = 0;
     // "sched_en" is the last message of the status dump after auth_ok.
     if (!root["sched_en"].isNull() && this->authenticated_ && !this->session_has_commands_ &&
         this->queue_.empty() && !this->writing_) {

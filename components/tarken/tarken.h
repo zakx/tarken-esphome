@@ -59,6 +59,9 @@ class Tarken : public Component, public ble_client::BLEClientNode, public espbt:
   void send_raw(const std::string &json);
   /// Connect, collect notifications, disconnect.
   void request_poll();
+  /// Current position from the last status and the last command:
+  /// "Closed", "Micro tilt", "Full tilt", "Open fully", or empty when unknown.
+  std::string position() const;
   /// Send {"pair":1}. Works only in the ~60 s window after the Tarken powers on.
   void request_pair();
 
@@ -170,7 +173,9 @@ class Tarken : public Component, public ble_client::BLEClientNode, public espbt:
   int expected_window_{-1};       // window state that ends the command session (-1 = any change)
   int window_before_{-1};         // window state before the command
   int last_window_{-1};
-  int last_active_{-1};  // meaning unknown (1/2 seen); logged only
+  int last_active_{-1};
+  int last_open_{-1};     // "open": selected mode, 1 = full tilt, 2 = micro tilt
+  int last_command_{-1};  // last window command value (2 = open fully)  // meaning unknown (1/2 seen); logged only
   uint32_t command_delay_ms_{500};
   uint32_t default_poll_interval_s_{300};
   bool send_ping_{true};
