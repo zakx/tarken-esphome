@@ -649,6 +649,12 @@ void Tarken::send_auth_response_() {
 
 void Tarken::handle_json_(const std::string &text) {
   bool ok = json::parse_json(text, [this](JsonObject root) -> bool {
+    // In a session with window commands, the status sent after the login is from before
+    // the command: keep the commanded state. The follow-up polls report the new state.
+    if (this->moving_) {
+      root.remove("window");
+      root.remove("open");
+    }
 #ifdef USE_SENSOR
     auto pub = [](sensor::Sensor *s, JsonVariant v) {
       if (s == nullptr || v.isNull())
