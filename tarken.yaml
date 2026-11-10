@@ -27,7 +27,7 @@ api:
 
 ota:
   - platform: esphome
-    password: !secret ota_password
+    encryption: {}   # uses the api encryption key
   # Upload from the web page (or curl), for hosts where the esphome tool cannot reach the LAN.
   - platform: web_server
 
@@ -43,6 +43,7 @@ captive_portal:
 web_server:
   port: 80
   auth:
+    type: digest
     username: admin
     password: !secret ota_password
   version: 3

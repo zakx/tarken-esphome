@@ -108,7 +108,8 @@ bool Tarken::parse_device(const espbt::ESPBTDevice &device) {
   this->mac_pref_.save(&this->mac_);
   global_preferences->sync();
   this->parent()->set_address(this->mac_);
-  ESP_LOGI(TAG, "Discovered Tarken: %s name='%s' rssi=%d (saved)", device.address_str().c_str(),
+  char addr[espbt::ESPBTDevice::MAC_ADDRESS_PRETTY_BUFFER_SIZE];
+  ESP_LOGI(TAG, "Discovered Tarken: %s name='%s' rssi=%d (saved)", device.address_str_to(addr),
            device.get_name().c_str(), device.get_rssi());
   this->publish_mac_();
   // Poll at once, do not wait for the next interval.
@@ -579,7 +580,7 @@ void Tarken::handle_auth_field_(const char *key, const char *val) {
       for (int i = 0; i < 4; i++)
         this->uid_[i] = this->new_uid_[i];
       this->uid_mask_ = 0xF;
-      ESP_LOGI(TAG, "Pair key received and stored: %08X %08X %08X %08X", this->uid_[0], this->uid_[1], this->uid_[2],
+      ESP_LOGI(TAG, "Pair key received and stored: %08" PRIX32 " %08" PRIX32 " %08" PRIX32 " %08" PRIX32, this->uid_[0], this->uid_[1], this->uid_[2],
                this->uid_[3]);
       std::array<uint32_t, 4> u{this->uid_[0], this->uid_[1], this->uid_[2], this->uid_[3]};
       this->uid_pref_.save(&u);

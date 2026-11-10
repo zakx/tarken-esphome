@@ -4,7 +4,8 @@ ESP32 firmware (ESPHome external component) that connects over BLE to a **Tarken
 window opener. It sends window commands and polls the sensor data, and shows both in
 Home Assistant as one device. Protocol: [`TARKEN_BLE_API.md`](TARKEN_BLE_API.md).
 
-Tested with Tarken WM firmware 1.1.4, an ESP32 (ESP32-D0WD-V3) and ESPHome 2026.6.
+Tested with Tarken WM firmware 1.1.4, an ESP32 (ESP32-D0WD-V3) and ESPHome 2026.10.
+ESPHome 2026.10 or newer is required (OTA encryption with the API key, digest auth).
 
 ## Entities
 
@@ -67,15 +68,16 @@ block), and add the secrets from [`secrets.example.yaml`](secrets.example.yaml).
 ### Local build
 
 ```sh
-python3.11 -m venv .venv && .venv/bin/pip install esphome
+python3.14 -m venv .venv && .venv/bin/pip install esphome   # Python 3.12–3.14
 cp secrets.example.yaml secrets.yaml      # fill in
 .venv/bin/esphome run tarken.yaml --device /dev/ttyUSB0   # first flash over USB
 ./ota.sh <bridge-ip>       # later updates over WiFi (web server upload)
 ./logs.sh <bridge-ip>      # live log over WiFi
 ```
 
-The web page (`http://<bridge-ip>/`), OTA and logs use the user `admin` and the
-`ota_password` from `secrets.yaml`.
+The web page (`http://<bridge-ip>/`), the web OTA upload and the logs use HTTP digest
+auth with the user `admin` and the `ota_password` from `secrets.yaml`. The esphome OTA
+(esphome tool, Device Builder) is encrypted with the API key.
 
 On macOS, `esphome upload/logs --device <ip>` can fail with "No route to host" until
 the terminal app is allowed in System Settings → Privacy & Security → Local Network.
