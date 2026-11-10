@@ -1,0 +1,7 @@
+.esphome/
+.venv/
+__pycache__/
+*.pyc
+secrets.yaml
+*.log
+.DS_Store

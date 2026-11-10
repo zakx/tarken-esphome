@@ -1,0 +1,41 @@
+esphome:
+  name: tarken-scan
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+  level: INFO
+
+esp32_ble_tracker:
+  scan_parameters:
+    active: true
+    interval: 320ms
+    window: 300ms
+  on_ble_advertise:
+    - then:
+        - lambda: |-
+            static std::map<uint64_t, std::string> seen;
+            std::string name = x.get_name();
+            std::string su;
+            for (auto &u : x.get_service_uuids()) { char b[37]; su += u.to_str(b); su += " "; }
+            std::string md;
+            for (auto &m : x.get_manufacturer_datas()) { char b[37]; md += m.uuid.to_str(b); md += ":"; md += format_hex(m.data); md += " "; }
+            std::string key = name + "|" + su;
+            auto it = seen.find(x.address_uint64());
+            if (it != seen.end() && it->second == key) return;
+            seen[x.address_uint64()] = key;
+            std::string lname = name;
+            for (auto &c : lname) c = tolower(c);
+            bool hit = lname.find("tarken") != std::string::npos;
+            for (auto &u : x.get_service_uuids())
+              if (u == esp32_ble_tracker::ESPBTUUID::from_uint16(0xABF0)) hit = true;
+            ESP_LOGI("tarken_scan", "%s %s type=%d rssi=%d name='%s' svc=[%s] mfg=[%s]", hit ? "FOUND" : "SEEN",
+                     x.address_str().c_str(), (int) x.get_address_type(), x.get_rssi(), name.c_str(), su.c_str(), md.c_str());
+
+interval:
+  - interval: 30s
+    then:
+      - logger.log: "--- scan still running ---"

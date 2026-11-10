@@ -1,0 +1,177 @@
+substitutions:
+  name: tarken-bridge
+  friendly_name: Tarken Window
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+external_components:
+  - source:
+      type: local
+      path: components
+
+logger:
+  level: DEBUG
+
+api:
+  # Do not reboot when no HA / log client is connected (default would be 15 min).
+  reboot_timeout: 0s
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+  # Upload from the web page (or curl), for hosts where the esphome tool cannot reach the LAN.
+  - platform: web_server
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "${name} fallback"
+
+captive_portal:
+
+# Local web page with entities and live logs: http://tarken-bridge.local/
+web_server:
+  port: 80
+  auth:
+    username: admin
+    password: !secret ota_password
+  version: 3
+  log: true
+
+# Continuous scan; the tarken component connects only during a session.
+esp32_ble_tracker:
+  scan_parameters:
+    active: true
+    interval: 320ms
+    window: 280ms
+
+ble_client:
+  - id: tarken_ble
+    # Placeholder: the tarken component finds the real MAC and stores it.
+    mac_address: "00:00:00:00:00:00"
+    auto_connect: false
+
+number:
+  - platform: template
+    id: tarken_poll_interval
+    name: "Poll interval"
+    icon: mdi:timer-sync-outline
+    entity_category: config
+    unit_of_measurement: s
+    mode: box
+    min_value: 0
+    max_value: 3600
+    step: 10
+    initial_value: 300
+    restore_value: true
+    optimistic: true
+
+# Diagnostic: send any JSON to the Tarken, e.g. {"pair":1}
+text:
+  - platform: template
+    name: "Raw command"
+    id: tarken_raw
+    entity_category: diagnostic
+    mode: text
+    optimistic: true
+    max_length: 128
+    on_value:
+      - lambda: |-
+          if (!x.empty()) id(tarken_wm).send_raw(x);
+
+tarken:
+  id: tarken_wm
+  ble_client_id: tarken_ble
+  poll_interval_number: tarken_poll_interval
+  idle_timeout: 10s
+  session_timeout: 60s
+  max_connected_time: 30s
+  command_hold_time: 120s  # max time to track a movement (movements take ~1 min)
+  status_interval: 10s     # poll every 10 s after a command until the target window state
+  command_delay: 500ms
+  send_ping: false
+  pair_uid: !secret tarken_pair_uid
+  # mac_address: "AA:BB:CC:DD:EE:FF"   # optional, skips auto-discovery
+  temperature:
+    name: "Temperature"
+  humidity:
+    name: "Humidity"
+  co2:
+    name: "CO2"
+  tvoc:
+    name: "TVOC"
+  battery_level:
+    name: "Battery"
+  uptime:
+    name: "Tarken uptime"
+  window_raw:
+    name: "Window state code"
+  connected:
+    name: "BLE connected"
+  fully_open_mode:
+    name: "Fully open mode"
+  spindle:
+    name: "Spindle"
+  buttons:
+    name: "Physical buttons"
+  firmware:
+    name: "Tarken firmware"
+  window_state:
+    name: "Window state"
+  last_message:
+    name: "Last message"
+  discovered_mac:
+    name: "Tarken MAC"
+
+button:
+  - platform: template
+    name: "Open fully"
+    icon: mdi:window-open
+    on_press:
+      - lambda: id(tarken_wm).send_window(2);
+  - platform: template
+    name: "Tilt fully"
+    icon: mdi:window-open-variant
+    on_press:
+      - lambda: id(tarken_wm).send_window({8, 1});
+  - platform: template
+    name: "Micro tilt"
+    icon: mdi:window-open-variant
+    on_press:
+      - lambda: id(tarken_wm).send_window({7, 1});
+  - platform: template
+    name: "Close"
+    icon: mdi:window-closed
+    on_press:
+      - lambda: id(tarken_wm).send_window(0);
+  - platform: template
+    name: "Refresh sensors"
+    icon: mdi:refresh
+    entity_category: diagnostic
+    on_press:
+      - lambda: id(tarken_wm).request_poll();
+  - platform: template
+    name: "Pair"
+    icon: mdi:link-variant
+    entity_category: config
+    on_press:
+      - lambda: id(tarken_wm).request_pair();
+  - platform: template
+    name: "Forget Tarken"
+    icon: mdi:bluetooth-off
+    entity_category: config
+    on_press:
+      - lambda: id(tarken_wm).forget_device();
+  - platform: restart
+    name: "Restart bridge"
+    entity_category: diagnostic
